@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XPath Recorder</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      margin: 5px;
+      padding: 5px 10px;
+    }
+    #actionList {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <button id="startRecording">Start Recording</button>
+    <button id="stopRecording" disabled>Stop Recording</button>
+    <button id="resetRecording">Reset</button>
+    <button id="copyActions">Copy Actions</button>
+  </div>
+  <div id="actionList"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "XPath Action Recorder",
+  "version": "1.0",
+  "description": "Record user actions with XPath",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
