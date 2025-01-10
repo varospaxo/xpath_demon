@@ -1,4 +1,3 @@
-// Helper function to get element at coordinates
 function getElementFromPoint(x, y) {
     const elements = document.elementsFromPoint(x, y);
     
@@ -110,7 +109,6 @@ function encodeInputValue(value) {
 }
 
 function isMultiLineInput(element, value) {
-    // Check if the element is inherently multi-line
     if (
         element.tagName.toLowerCase() === 'textarea' ||
         element.getAttribute('contenteditable') === 'true' ||
@@ -121,7 +119,6 @@ function isMultiLineInput(element, value) {
         return true;
     }
     
-    // Check if the value contains line breaks
     return value.includes('\n');
 }
 
@@ -163,7 +160,21 @@ function logSubmitEvent(event) {
     });
 }
 
-function logInputEvent(event) {
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+const inputTimeouts = new WeakMap();
+
+function processInputEvent(event) {
     const inputElement = getMeaningfulInputElement(event.target);
     
     let xpath = 'unknown';
@@ -171,13 +182,13 @@ function logInputEvent(event) {
         xpath = getFullElementXPath(inputElement);
     } catch (error) {
         console.warn('Failed to get XPath for input event:', error);
+        return;
     }
 
     let value = '';
     let type = '';
     
     try {
-        // Handle different types of input elements
         if (inputElement.type) {
             type = inputElement.type.toLowerCase();
             value = inputElement.value;
@@ -192,25 +203,21 @@ function logInputEvent(event) {
             value = inputElement.value;
         }
         
-        // Only log specific input types
         if ([
             'text', 'textarea', 'email', 'password', 'search', 'tel', 'url',
             'contenteditable', 'editor'
         ].includes(type)) {
             console.log(`Input recorded: ${xpath}`);
             
-            // Determine if this is a multi-line input
             const isMultiLine = isMultiLineInput(inputElement, value);
             
             if (isMultiLine) {
-                // Multi-line input - encode the value and use input_ml action
                 const encodedValue = encodeInputValue(value);
                 chrome.runtime.sendMessage({
                     action: 'recordAction',
                     actionText: `input|${xpath}|${encodedValue}|${type}|encoded`,
                 });
             } else {
-                // Single-line input - use regular input action with raw value
                 chrome.runtime.sendMessage({
                     action: 'recordAction',
                     actionText: `input|${xpath}|${value}|${type}|None`,
@@ -222,6 +229,7 @@ function logInputEvent(event) {
     }
 }
 
+const debouncedInputHandler = debounce(processInputEvent, 1000);
 document.addEventListener('click', logClickEvent, true);
 document.addEventListener('submit', logSubmitEvent, true);
-document.addEventListener('input', logInputEvent, true);
+document.addEventListener('input', debouncedInputHandler, true);
