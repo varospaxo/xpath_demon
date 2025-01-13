@@ -1,3 +1,95 @@
+// Add styles for hover highlighting
+const style = document.createElement('style');
+style.textContent = `
+.xpath-hover-highlight {
+    outline: 2px solid #4CAF50 !important;
+    outline-offset: 1px !important;
+    position: relative;
+}
+
+.xpath-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10000;
+    pointer-events: none;
+    max-width: 300px;
+    word-wrap: break-word;
+}`;
+document.head.appendChild(style);
+
+let currentTooltip = null;
+let isRecording = false;
+
+// Function to create and show tooltip
+function showTooltip(element, event) {
+    if (!isRecording) return;
+    
+    const xpath = getFullElementXPath(element);
+    if (currentTooltip) {
+        currentTooltip.remove();
+    }
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'xpath-tooltip';
+    tooltip.textContent = `XPath: ${xpath}`;
+    
+    // Position tooltip near cursor
+    tooltip.style.left = `${event.clientX + 10}px`;
+    tooltip.style.top = `${event.clientY + 10}px`;
+    
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+}
+
+// Function to remove tooltip
+function removeTooltip() {
+    if (currentTooltip) {
+        currentTooltip.remove();
+        currentTooltip = null;
+    }
+}
+
+// Mouse move handler for highlighting
+function handleMouseMove(event) {
+    if (!isRecording) return;
+    
+    // Remove previous highlighting
+    const previousHighlight = document.querySelector('.xpath-hover-highlight');
+    if (previousHighlight) {
+        previousHighlight.classList.remove('xpath-hover-highlight');
+    }
+    
+    const element = getElementFromPoint(event.clientX, event.clientY);
+    if (element) {
+        element.classList.add('xpath-hover-highlight');
+        showTooltip(element, event);
+    }
+}
+
+// Add debounced mouse move listener
+const debouncedMouseMove = debounce(handleMouseMove, 50);
+document.addEventListener('mousemove', debouncedMouseMove, true);
+
+// Listen for recording state changes
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'recordingStateChanged') {
+        isRecording = request.isRecording;
+        
+        if (!isRecording) {
+            // Clean up highlighting and tooltip when recording stops
+            const highlightedElement = document.querySelector('.xpath-hover-highlight');
+            if (highlightedElement) {
+                highlightedElement.classList.remove('xpath-hover-highlight');
+            }
+            removeTooltip();
+        }
+    }
+});
+
 function getElementFromPoint(x, y) {
     const elements = document.elementsFromPoint(x, y);
     

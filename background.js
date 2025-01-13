@@ -69,3 +69,47 @@ setInterval(() => {
     console.error('Error saving recorded actions:', error);
   }
 }, 5000);
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  try {
+      switch(request.action) {
+          case 'startRecording':
+              isRecording = true;
+              chrome.storage.local.set({ isRecording: true });
+              // Notify all tabs about recording state change
+              chrome.tabs.query({}, (tabs) => {
+                  tabs.forEach(tab => {
+                      chrome.tabs.sendMessage(tab.id, {
+                          action: 'recordingStateChanged',
+                          isRecording: true
+                      }).catch(() => {
+                          // Ignore errors for inactive tabs
+                      });
+                  });
+              });
+              sendResponse({ success: true });
+              break;
+          case 'stopRecording':
+              isRecording = false;
+              chrome.storage.local.set({ isRecording: false });
+              // Notify all tabs about recording state change
+              chrome.tabs.query({}, (tabs) => {
+                  tabs.forEach(tab => {
+                      chrome.tabs.sendMessage(tab.id, {
+                          action: 'recordingStateChanged',
+                          isRecording: false
+                      }).catch(() => {
+                          // Ignore errors for inactive tabs
+                      });
+                  });
+              });
+              sendResponse({ success: true });
+              break;
+          // Rest of the switch cases remain the same...
+      }
+  } catch (error) {
+      console.error('Error in message listener:', error);
+      sendResponse({ error: error.toString() });
+  }
+  return true;
+});
