@@ -249,6 +249,7 @@ style.textContent = `
     pointer-events: none;
     max-width: 400px;
     word-wrap: break-word;
+    transition: all 0.1s ease-out;
 }
 
 .xpath-tooltip-content {
@@ -267,20 +268,16 @@ style.textContent = `
 }`;
 document.head.appendChild(style);
 
-// Tooltip functionality for element hover
 let currentTooltip = null;
-let highlightedElement = null;  // To store the element being highlighted
+let highlightedElement = null;
 
-// Helper function to get XPath
 function getFullElementXPath(element) {
     if (!element) return 'unknown';
-
     if (element.id) return `id("${element.id}")`;
     if (element.tagName.toLowerCase() === 'html') return '/html';
 
-    const siblings = Array.from(element.parentNode?.children || []).filter(
-        sibling => sibling.tagName === element.tagName
-    );
+    const siblings = Array.from(element.parentNode?.children || [])
+        .filter(sibling => sibling.tagName === element.tagName);
     const position = siblings.indexOf(element) + 1;
     const parentPath = element.parentNode ? getFullElementXPath(element.parentNode) : '';
 
@@ -327,14 +324,35 @@ function getRelevantAttributes(element) {
     return attributes;
 }
 
-function showTooltip(element, event) {
-    if (!element) return 'unknown';
+function updateTooltipPosition(tooltip, event) {
+    if (!tooltip) return;
+    
+    let left = event.clientX + 10;
+    let top = event.clientY + 10;
 
-    // Highlight the element
-    highlightElement(element);
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-    removeTooltip();
+    // Adjust horizontal position if tooltip would go off screen
+    if (left + tooltipRect.width > viewportWidth) {
+        left = viewportWidth - tooltipRect.width - 10;
+    }
 
+    // Adjust vertical position if tooltip would go off screen
+    if (top + tooltipRect.height > viewportHeight) {
+        top = viewportHeight - tooltipRect.height - 10;
+    }
+
+    // Ensure tooltip doesn't go off the left or top of the screen
+    left = Math.max(10, left);
+    top = Math.max(10, top);
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function createTooltip(element) {
     const tooltip = document.createElement('div');
     tooltip.className = 'xpath-tooltip';
 
@@ -350,38 +368,74 @@ function showTooltip(element, event) {
         </div>
     `;
 
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
-
-    document.body.appendChild(tooltip);
-    currentTooltip = tooltip;
-
-    const tooltipRect = tooltip.getBoundingClientRect();
-    if (tooltipRect.right > window.innerWidth) {
-        tooltip.style.left = `${window.innerWidth - tooltipRect.width - 10}px`;
-    }
-    if (tooltipRect.bottom > window.innerHeight) {
-        tooltip.style.top = `${window.innerHeight - tooltipRect.height - 10}px`;
-    }
+    return tooltip;
 }
 
-function highlightElement(element) {
+function handleMouseEnter(event) {
+    const element = event.target;
+    if (element === document.documentElement || element === document.body) return;
+
+    // Add highlight
     if (highlightedElement) {
         highlightedElement.classList.remove('xpath-hover-highlight');
     }
     element.classList.add('xpath-hover-highlight');
     highlightedElement = element;
+
+    // Remove existing tooltip
+    if (currentTooltip) {
+        currentTooltip.remove();
+    }
+
+    // Create and position new tooltip
+    const tooltip = createTooltip(element);
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+    updateTooltipPosition(tooltip, event);
 }
 
-function removeTooltip() {
-    currentTooltip?.remove();
-    currentTooltip = null;
+function handleMouseMove(event) {
+    if (currentTooltip) {
+        updateTooltipPosition(currentTooltip, event);
+    }
+}
 
+function handleMouseLeave(event) {
+    const element = event.target;
+    
+    // Only remove highlight if we're leaving the highlighted element
+    if (element === highlightedElement) {
+        element.classList.remove('xpath-hover-highlight');
+        highlightedElement = null;
+        
+        if (currentTooltip) {
+            currentTooltip.remove();
+            currentTooltip = null;
+        }
+    }
+}
+
+// Remove old event listeners if they exist
+document.removeEventListener('mousemove', handleMouseMove);
+document.removeEventListener('mouseenter', handleMouseEnter, true);
+document.removeEventListener('mouseleave', handleMouseLeave, true);
+
+// Add new event listeners
+document.addEventListener('mouseenter', handleMouseEnter, true);
+document.addEventListener('mousemove', handleMouseMove, true);
+document.addEventListener('mouseleave', handleMouseLeave, true);
+
+// Handle scroll events
+document.addEventListener('scroll', () => {
+    if (currentTooltip) {
+        currentTooltip.remove();
+        currentTooltip = null;
+    }
     if (highlightedElement) {
         highlightedElement.classList.remove('xpath-hover-highlight');
         highlightedElement = null;
     }
-}
+}, { passive: true });
 
 // Flag to track if scrolling is happening
 let isScrolling = false;
