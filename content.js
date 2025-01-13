@@ -372,6 +372,8 @@ function createTooltip(element) {
 }
 
 function handleMouseEnter(event) {
+    if (!isRecordingEnabled) return;
+    
     const element = event.target;
     if (element === document.documentElement || element === document.body) return;
 
@@ -491,3 +493,62 @@ document.addEventListener('mouseenter', function(event) {
 document.addEventListener('mouseleave', function(event) {
     removeTooltip(); // Remove tooltip when mouse leaves the element
 }, true);
+
+// Add these variables at the top of content.js
+let isRecordingEnabled = false;
+let tooltipEventListenersActive = false;
+
+// Function to add tooltip event listeners
+function addTooltipEventListeners() {
+    if (!tooltipEventListenersActive) {
+        document.addEventListener('mouseenter', handleMouseEnter, true);
+        document.addEventListener('mousemove', handleMouseMove, true);
+        document.addEventListener('mouseleave', handleMouseLeave, true);
+        document.addEventListener('scroll', handleScrollForTooltip, { passive: true });
+        tooltipEventListenersActive = true;
+    }
+}
+
+// Function to remove tooltip event listeners
+function removeTooltipEventListeners() {
+    if (tooltipEventListenersActive) {
+        document.removeEventListener('mouseenter', handleMouseEnter, true);
+        document.removeEventListener('mousemove', handleMouseMove, true);
+        document.removeEventListener('mouseleave', handleMouseLeave, true);
+        document.removeEventListener('scroll', handleScrollForTooltip, { passive: true });
+        tooltipEventListenersActive = false;
+        
+        // Clean up any existing tooltips and highlights
+        if (currentTooltip) {
+            currentTooltip.remove();
+            currentTooltip = null;
+        }
+        if (highlightedElement) {
+            highlightedElement.classList.remove('xpath-hover-highlight');
+            highlightedElement = null;
+        }
+    }
+}
+
+// Add message listener for recording state changes
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'recordingStateChanged') {
+        isRecordingEnabled = request.isRecording;
+        
+        if (isRecordingEnabled) {
+            addTooltipEventListeners();
+        } else {
+            removeTooltipEventListeners();
+        }
+    }
+});
+
+// Initialize recording state
+chrome.runtime.sendMessage({ action: 'getActions' }, (response) => {
+    if (response && response.isRecording !== undefined) {
+        isRecordingEnabled = response.isRecording;
+        if (isRecordingEnabled) {
+            addTooltipEventListeners();
+        }
+    }
+});
