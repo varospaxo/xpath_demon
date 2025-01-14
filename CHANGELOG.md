@@ -3,3 +3,4 @@ v2 - records xpath + xy axis + viewport size
 v3 - can identify and record clicks on complex elements like cards
 v4 - minor changes to record extra params
 v5 - added basic tooltip to highlight the element and show xpath
+v6 - fixed tooltip and added scroll recording functionality
