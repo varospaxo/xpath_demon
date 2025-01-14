@@ -10,6 +10,20 @@
       background-color: #1e1e1e;
       color: #d4d4d4;
     }
+    
+    .title-text {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+    
+    .xpath-text {
+      color: white;
+    }
+    
+    .demon-text {
+      color: #4caf50;
+    }
 
     button {
       margin: 5px;
@@ -33,38 +47,40 @@
     #actionList {
       max-height: 200px;
       overflow-y: auto;
-      overflow-x: auto; /* Enables horizontal scrolling */
+      overflow-x: auto;
       border: 1px solid #3a3a3a;
       padding: 5px;
       margin-top: 10px;
       color: #4caf50;
       background-color: #2e2e2e;
-      line-height: 1.6; /* Adds spacing between lines */
-      white-space: nowrap; /* Prevents text wrapping */
+      line-height: 1.6;
+      white-space: nowrap;
     }
     
-    /* Custom scrollbar styling */
     #actionList::-webkit-scrollbar {
-      width: 8px; /* Width of vertical scrollbar */
-      height: 8px; /* Height of horizontal scrollbar */
+      width: 8px;
+      height: 8px;
     }
     
     #actionList::-webkit-scrollbar-track {
-      background: #2e2e2e; /* Track background color */
+      background: #2e2e2e;
     }
     
     #actionList::-webkit-scrollbar-thumb {
-      background: #4caf50; /* Thumb color */
-      border-radius: 4px; /* Rounded corners for thumb */
+      background: #4caf50;
+      border-radius: 4px;
     }
     
     #actionList::-webkit-scrollbar-thumb:hover {
-      background: #45a049; /* Thumb color on hover */
-        
+      background: #45a049;
     }
   </style>
 </head>
 <body>
+  <h1 class="title-text">
+    <span class="xpath-text">XPath</span>
+    <span class="demon-text">Demon</span>
+  </h1>
   <div>
     <button id="startRecording">Start Recording</button>
     <button id="stopRecording" disabled>Stop Recording</button>
