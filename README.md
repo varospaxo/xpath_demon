@@ -2,6 +2,8 @@
 
 A Chrome extension that records user interactions on web pages by capturing XPath selectors, mouse coordinates, viewport information, and scroll actions. Perfect for web testing, automation, and user behavior analysis.
 
+![image](https://github.com/user-attachments/assets/25c105eb-8eef-4776-8c6f-142b93370964)
+
 ## Features
 
 - Records precise user interactions including:
