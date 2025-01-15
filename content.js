@@ -1,3 +1,17 @@
+// Utility Functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Element Detection and XPath Functions
 function getElementFromPoint(x, y) {
     const elements = document.elementsFromPoint(x, y);
     
@@ -63,17 +77,9 @@ function getMeaningfulInputElement(element) {
 
 function getFullElementXPath(element) {
     try {
-        if (!element) {
-            return 'unknown';
-        }
-
-        if (element.id) {
-            return `id("${element.id}")`;
-        }
-
-        if (element.tagName.toLowerCase() === 'html') {
-            return '/html';
-        }
+        if (!element) return 'unknown';
+        if (element.id) return `id("${element.id}")`;
+        if (element.tagName.toLowerCase() === 'html') return '/html';
 
         let position = 1;
         let currentSibling = element;
@@ -103,6 +109,7 @@ function getFullElementXPath(element) {
     }
 }
 
+// Input Processing Functions
 function encodeInputValue(value) {
     value = String(value);
     return btoa(decodeURIComponent(encodeURIComponent(value)));
@@ -122,6 +129,7 @@ function isMultiLineInput(element, value) {
     return value.includes('\n');
 }
 
+// Event Logging Functions
 function logClickEvent(event) {
     const x = event.clientX;
     const y = event.clientY;
@@ -159,20 +167,6 @@ function logSubmitEvent(event) {
         actionText: `submit|${xpath}`,
     });
 }
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-const inputTimeouts = new WeakMap();
 
 function processInputEvent(event) {
     const inputElement = getMeaningfulInputElement(event.target);
@@ -229,61 +223,7 @@ function processInputEvent(event) {
     }
 }
 
-
-const style = document.createElement('style');
-style.textContent = `
-.xpath-hover-highlight {
-    outline: 2px solid #4CAF50 !important;
-    outline-offset: 1px !important;
-    position: relative;
-}
-
-.xpath-tooltip {
-    position: fixed;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    z-index: 10000;
-    pointer-events: none;
-    max-width: 400px;
-    word-wrap: break-word;
-    transition: all 0.1s ease-out;
-}
-
-.xpath-tooltip-content {
-    margin-bottom: 4px;
-}
-
-.xpath-tooltip-type {
-    color: #8BE9FD;
-    font-style: italic;
-}
-
-.xpath-tooltip-attributes {
-    color: #50FA7B;
-    margin-top: 4px;
-    font-size: 11px;
-}`;
-document.head.appendChild(style);
-
-let currentTooltip = null;
-let highlightedElement = null;
-
-function getFullElementXPath(element) {
-    if (!element) return 'unknown';
-    if (element.id) return `id("${element.id}")`;
-    if (element.tagName.toLowerCase() === 'html') return '/html';
-
-    const siblings = Array.from(element.parentNode?.children || [])
-        .filter(sibling => sibling.tagName === element.tagName);
-    const position = siblings.indexOf(element) + 1;
-    const parentPath = element.parentNode ? getFullElementXPath(element.parentNode) : '';
-
-    return `${parentPath}/${element.tagName.toLowerCase()}${siblings.length > 1 ? `[${position}]` : ''}`;
-}
-
+// Tooltip and Highlighting Functions
 function getElementType(element) {
     if (!element) return 'unknown';
 
@@ -334,17 +274,14 @@ function updateTooltipPosition(tooltip, event) {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Adjust horizontal position if tooltip would go off screen
     if (left + tooltipRect.width > viewportWidth) {
         left = viewportWidth - tooltipRect.width - 10;
     }
 
-    // Adjust vertical position if tooltip would go off screen
     if (top + tooltipRect.height > viewportHeight) {
         top = viewportHeight - tooltipRect.height - 10;
     }
 
-    // Ensure tooltip doesn't go off the left or top of the screen
     left = Math.max(10, left);
     top = Math.max(10, top);
 
@@ -371,25 +308,23 @@ function createTooltip(element) {
     return tooltip;
 }
 
+// Event Handlers
 function handleMouseEnter(event) {
     if (!isRecordingEnabled) return;
     
     const element = event.target;
     if (element === document.documentElement || element === document.body) return;
 
-    // Add highlight
     if (highlightedElement) {
         highlightedElement.classList.remove('xpath-hover-highlight');
     }
     element.classList.add('xpath-hover-highlight');
     highlightedElement = element;
 
-    // Remove existing tooltip
     if (currentTooltip) {
         currentTooltip.remove();
     }
 
-    // Create and position new tooltip
     const tooltip = createTooltip(element);
     document.body.appendChild(tooltip);
     currentTooltip = tooltip;
@@ -405,7 +340,6 @@ function handleMouseMove(event) {
 function handleMouseLeave(event) {
     const element = event.target;
     
-    // Only remove highlight if we're leaving the highlighted element
     if (element === highlightedElement) {
         element.classList.remove('xpath-hover-highlight');
         highlightedElement = null;
@@ -417,15 +351,137 @@ function handleMouseLeave(event) {
     }
 }
 
-// Remove old event listeners if they exist
+function handleScroll() {
+    if (isScrolling) return;
+    isScrolling = true;
+    
+    const currentScrollX = Math.round(window.scrollX);
+    const currentScrollY = Math.round(window.scrollY);
+    const scrollDeltaX = currentScrollX - lastScrollX;
+    const scrollDeltaY = currentScrollY - lastScrollY;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
+        console.log(`Scroll by x: ${scrollDeltaX}, y: ${scrollDeltaY}`);
+        chrome.runtime.sendMessage({
+            action: 'recordAction',
+            actionText: `scroll_by|${scrollDeltaX}|${scrollDeltaY}|${viewportWidth}x${viewportHeight}`,
+        });
+        
+        lastScrollX = currentScrollX;
+        lastScrollY = currentScrollY;
+    }
+    
+    isScrolling = false;
+}
+
+// Tooltip Event Management
+function addTooltipEventListeners() {
+    if (!tooltipEventListenersActive) {
+        document.addEventListener('mouseenter', handleMouseEnter, true);
+        document.addEventListener('mousemove', handleMouseMove, true);
+        document.addEventListener('mouseleave', handleMouseLeave, true);
+        document.addEventListener('scroll', handleScrollForTooltip, { passive: true });
+        tooltipEventListenersActive = true;
+    }
+}
+
+function removeTooltipEventListeners() {
+    if (tooltipEventListenersActive) {
+        document.removeEventListener('mouseenter', handleMouseEnter, true);
+        document.removeEventListener('mousemove', handleMouseMove, true);
+        document.removeEventListener('mouseleave', handleMouseLeave, true);
+        document.removeEventListener('scroll', handleScrollForTooltip, { passive: true });
+        tooltipEventListenersActive = false;
+        
+        if (currentTooltip) {
+            currentTooltip.remove();
+            currentTooltip = null;
+        }
+        if (highlightedElement) {
+            highlightedElement.classList.remove('xpath-hover-highlight');
+            highlightedElement = null;
+        }
+    }
+}
+
+// Styles
+const style = document.createElement('style');
+style.textContent = `
+.xpath-hover-highlight {
+    outline: 2px solid #4CAF50 !important;
+    outline-offset: 1px !important;
+    position: relative;
+}
+
+.xpath-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10000;
+    pointer-events: none;
+    max-width: 400px;
+    word-wrap: break-word;
+    transition: all 0.1s ease-out;
+}
+
+.xpath-tooltip-content {
+    margin-bottom: 4px;
+}
+
+.xpath-tooltip-type {
+    color: #8BE9FD;
+    font-style: italic;
+}
+
+.xpath-tooltip-attributes {
+    color: #50FA7B;
+    margin-top: 4px;
+    font-size: 11px;
+}`;
+document.head.appendChild(style);
+
+// Global Variables
+let currentTooltip = null;
+let highlightedElement = null;
+let isRecordingEnabled = false;
+let tooltipEventListenersActive = false;
+let isScrolling = false;
+let lastScrollX = 0;
+let lastScrollY = 0;
+
+// Event Listeners (continued)
+const debouncedScrollHandler = debounce(handleScroll, 150);
+const debouncedInputHandler = debounce(processInputEvent, 1000);
+
+// Remove existing event listeners
 document.removeEventListener('mousemove', handleMouseMove);
 document.removeEventListener('mouseenter', handleMouseEnter, true);
 document.removeEventListener('mouseleave', handleMouseLeave, true);
 
-// Add new event listeners
+// Add core event listeners
 document.addEventListener('mouseenter', handleMouseEnter, true);
 document.addEventListener('mousemove', handleMouseMove, true);
 document.addEventListener('mouseleave', handleMouseLeave, true);
+document.addEventListener('scroll', debouncedScrollHandler, { passive: true });
+document.addEventListener('click', logClickEvent, true);
+document.addEventListener('input', debouncedInputHandler, true);
+
+// Add event listener for hover to show tooltip
+document.addEventListener('mouseenter', function(event) {
+    const targetElement = event.target;
+    showTooltip(targetElement, event);
+}, true);
+
+// Add event listener to remove tooltip
+document.addEventListener('mouseleave', function(event) {
+    removeTooltip();
+}, true);
 
 // Handle scroll events
 document.addEventListener('scroll', () => {
@@ -439,98 +495,7 @@ document.addEventListener('scroll', () => {
     }
 }, { passive: true });
 
-// Flag to track if scrolling is happening
-let isScrolling = false;
-
-// Function to track scrolling action
-let lastScrollX = 0;
-let lastScrollY = 0;
-
-function handleScroll() {
-    if (isScrolling) return;
-    isScrolling = true;
-    
-    // Calculate deltas relative to last position
-    const currentScrollX = Math.round(window.scrollX);
-    const currentScrollY = Math.round(window.scrollY);
-    const scrollDeltaX = currentScrollX - lastScrollX;  // Can be negative
-    const scrollDeltaY = currentScrollY - lastScrollY;  // Can be negative
-    
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Only log if there was actual scrolling
-    if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
-        console.log(`Scroll by x: ${scrollDeltaX}, y: ${scrollDeltaY}`);
-        chrome.runtime.sendMessage({
-            action: 'recordAction',
-            actionText: `scroll_by|${scrollDeltaX}|${scrollDeltaY}|${viewportWidth}x${viewportHeight}`,
-        });
-        
-        // Update last positions
-        lastScrollX = currentScrollX;
-        lastScrollY = currentScrollY;
-    }
-    
-    isScrolling = false;
-}
-
-// Debounce the scroll handler to avoid frequent updates
-const debouncedScrollHandler = debounce(handleScroll, 150);
-// Add the event listener for scroll
-document.addEventListener('scroll', debouncedScrollHandler, { passive: true });
-const debouncedInputHandler = debounce(processInputEvent, 1000);
-document.addEventListener('click', logClickEvent, true);
-// document.addEventListener('submit', logSubmitEvent, true);
-document.addEventListener('input', debouncedInputHandler, true);
-
-// Add event listener for hover to show tooltip and highlight element
-document.addEventListener('mouseenter', function(event) {
-    const targetElement = event.target;
-    showTooltip(targetElement, event);
-}, true);
-
-document.addEventListener('mouseleave', function(event) {
-    removeTooltip(); // Remove tooltip when mouse leaves the element
-}, true);
-
-// Add these variables at the top of content.js
-let isRecordingEnabled = false;
-let tooltipEventListenersActive = false;
-
-// Function to add tooltip event listeners
-function addTooltipEventListeners() {
-    if (!tooltipEventListenersActive) {
-        document.addEventListener('mouseenter', handleMouseEnter, true);
-        document.addEventListener('mousemove', handleMouseMove, true);
-        document.addEventListener('mouseleave', handleMouseLeave, true);
-        document.addEventListener('scroll', handleScrollForTooltip, { passive: true });
-        tooltipEventListenersActive = true;
-    }
-}
-
-// Function to remove tooltip event listeners
-function removeTooltipEventListeners() {
-    if (tooltipEventListenersActive) {
-        document.removeEventListener('mouseenter', handleMouseEnter, true);
-        document.removeEventListener('mousemove', handleMouseMove, true);
-        document.removeEventListener('mouseleave', handleMouseLeave, true);
-        document.removeEventListener('scroll', handleScrollForTooltip, { passive: true });
-        tooltipEventListenersActive = false;
-        
-        // Clean up any existing tooltips and highlights
-        if (currentTooltip) {
-            currentTooltip.remove();
-            currentTooltip = null;
-        }
-        if (highlightedElement) {
-            highlightedElement.classList.remove('xpath-hover-highlight');
-            highlightedElement = null;
-        }
-    }
-}
-
-// Add message listener for recording state changes
+// Chrome Runtime Message Listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'recordingStateChanged') {
         isRecordingEnabled = request.isRecording;
