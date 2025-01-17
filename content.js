@@ -472,6 +472,28 @@ document.addEventListener('scroll', debouncedScrollHandler, { passive: true });
 document.addEventListener('click', logClickEvent, true);
 document.addEventListener('input', debouncedInputHandler, true);
 
+// Add an event listener for keydown to detect Ctrl+V
+// document.addEventListener('keydown', function (event) {
+//     if (event.ctrlKey && event.key === 'v') {
+//         // Detect the element where the paste is happening
+//         const activeElement = document.activeElement;
+//         let xpath = 'unknown';
+//         try {
+//             xpath = getFullElementXPath(activeElement);
+//         } catch (error) {
+//             console.warn('Failed to get XPath for paste event:', error);
+//         }
+
+//         console.log(`Paste detected at ${xpath}`);
+
+//         // Send the "paste" action to the background script
+//         chrome.runtime.sendMessage({
+//             action: 'recordAction',
+//             actionText: `paste|${xpath}`
+//         });
+//     }
+// });
+
 // Add event listener for hover to show tooltip
 document.addEventListener('mouseenter', function(event) {
     const targetElement = event.target;
