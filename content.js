@@ -75,10 +75,19 @@ function getMeaningfulInputElement(element) {
     return element;
 }
 
+// Global variable to store the current useId state
+let useIdGlobal = false;
+
+// Function to update the global useId state
+function setUseId(value) {
+    useIdGlobal = value;
+}
+
 function getFullElementXPath(element) {
     try {
         if (!element) return 'unknown';
-        if (element.id) return `id("${element.id}")`;
+        
+        if (useIdGlobal && element.id) return `id("${element.id}")`;
         if (element.tagName.toLowerCase() === 'html') return '/html';
 
         let position = 1;
@@ -90,7 +99,7 @@ function getFullElementXPath(element) {
         }
 
         let path = '';
-        if (element.parentNode) {
+        if (element.parentNode && element.parentNode.nodeType === 1) {
             path = `${getFullElementXPath(element.parentNode)}/${element.tagName.toLowerCase()}`;
             const siblings = Array.from(element.parentNode.children).filter(
                 (sibling) => sibling.tagName === element.tagName
@@ -109,6 +118,17 @@ function getFullElementXPath(element) {
     }
 }
 
+// Add message listener for useId updates
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'setUseId') {
+        setUseId(message.value);
+    }
+});
+
+// Initialize useId state from storage
+chrome.storage.local.get(['useId'], (result) => {
+    setUseId(result.useId || false);
+});
 // Input Processing Functions
 function encodeInputValue(value) {
     value = String(value);

@@ -74,6 +74,21 @@
     #actionList::-webkit-scrollbar-thumb:hover {
       background: #45a049;
     }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin: 10px 5px;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-container label {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -81,6 +96,10 @@
     <span class="xpath-text">XPath</span>
     <span class="demon-text">Demon</span>
   </h1>
+  <div class="checkbox-container">
+    <input type="checkbox" id="useIdCheckbox">
+    <label for="useIdCheckbox">Use ID in XPath when available</label>
+  </div>
   <div>
     <button id="startRecording">Start Recording</button>
     <button id="stopRecording" disabled>Stop Recording</button>

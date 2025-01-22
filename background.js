@@ -70,6 +70,35 @@ setInterval(() => {
   }
 }, 5000);
 
+// Add this to your existing background.js message listener
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  try {
+      if (request.action === 'updateUseId') {
+          // Update storage
+          chrome.storage.local.set({ useId: request.useId });
+          
+          // Notify all tabs about the useId change
+          chrome.tabs.query({}, (tabs) => {
+              tabs.forEach(tab => {
+                  chrome.tabs.sendMessage(tab.id, {
+                      action: 'setUseId',
+                      value: request.useId
+                  }).catch(() => {
+                      // Ignore errors for inactive tabs
+                  });
+              });
+          });
+          
+          sendResponse({ success: true });
+      }
+      // ... rest of your existing message handlers
+  } catch (error) {
+      console.error('Error in message listener:', error);
+      sendResponse({ error: error.toString() });
+  }
+  return true;
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
       switch(request.action) {
