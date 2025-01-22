@@ -327,7 +327,7 @@ function createTooltip(element, event) {
             <div>XPath: ${xpath}</div>
             <div class="xpath-tooltip-type">Type: ${elementType}</div>
             ${attributes.length ? `<div class="xpath-tooltip-attributes">${attributes.join('<br>')}</div>` : ''}
-            <div class="xpath-tooltip-mouse">Mouse Position: (${x}, ${y})</div>
+            <div class="xpath-tooltip-mouse">Mouse Position: (x: ${x}, y: ${y})</div>
             <div class="xpath-tooltip-viewport">Viewport: ${viewportWidth}x${viewportHeight}</div>
         </div>
     `;
@@ -371,7 +371,7 @@ function handleMouseMove(event) {
         const viewportElement = currentTooltip.querySelector('.xpath-tooltip-viewport');
 
         if (mousePositionElement) {
-            mousePositionElement.textContent = `Mouse Position: (${x}, ${y})`;
+            mousePositionElement.textContent = `Mouse Position: (x: ${x}, y: ${y})`;
         }
 
         if (viewportElement) {
