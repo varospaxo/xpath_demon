@@ -309,7 +309,7 @@ function updateTooltipPosition(tooltip, event) {
     tooltip.style.top = `${top}px`;
 }
 
-function createTooltip(element) {
+function createTooltip(element, event) {
     const tooltip = document.createElement('div');
     tooltip.className = 'xpath-tooltip';
 
@@ -317,11 +317,18 @@ function createTooltip(element) {
     const elementType = getElementType(element);
     const attributes = getRelevantAttributes(element);
 
+    const x = event.clientX;
+    const y = event.clientY;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
     tooltip.innerHTML = `
         <div class="xpath-tooltip-content">
             <div>XPath: ${xpath}</div>
             <div class="xpath-tooltip-type">Type: ${elementType}</div>
             ${attributes.length ? `<div class="xpath-tooltip-attributes">${attributes.join('<br>')}</div>` : ''}
+            <div class="xpath-tooltip-mouse">Mouse Position: (${x}, ${y})</div>
+            <div class="xpath-tooltip-viewport">Viewport: ${viewportWidth}x${viewportHeight}</div>
         </div>
     `;
 
@@ -345,17 +352,37 @@ function handleMouseEnter(event) {
         currentTooltip.remove();
     }
 
-    const tooltip = createTooltip(element);
+    const tooltip = createTooltip(element, event);
     document.body.appendChild(tooltip);
     currentTooltip = tooltip;
     updateTooltipPosition(tooltip, event);
 }
 
+
 function handleMouseMove(event) {
     if (currentTooltip) {
+        const x = event.clientX;
+        const y = event.clientY;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Update tooltip content dynamically
+        const mousePositionElement = currentTooltip.querySelector('.xpath-tooltip-mouse');
+        const viewportElement = currentTooltip.querySelector('.xpath-tooltip-viewport');
+
+        if (mousePositionElement) {
+            mousePositionElement.textContent = `Mouse Position: (${x}, ${y})`;
+        }
+
+        if (viewportElement) {
+            viewportElement.textContent = `Viewport: ${viewportWidth}x${viewportHeight}`;
+        }
+
+        // Reposition tooltip
         updateTooltipPosition(currentTooltip, event);
     }
 }
+
 
 function handleMouseLeave(event) {
     const element = event.target;
@@ -396,6 +423,7 @@ function handleScroll() {
     
     isScrolling = false;
 }
+
 
 // Tooltip Event Management
 function addTooltipEventListeners() {
