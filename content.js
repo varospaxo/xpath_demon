@@ -85,10 +85,15 @@ function setUseId(value) {
 
 function getFullElementXPath(element) {
     try {
-        if (!element) return 'unknown';
+        // Early return for null or undefined elements
+        if (!element || typeof element === 'undefined') return 'unknown';
         
         if (useIdGlobal && element.id) return `id("${element.id}")`;
-        if (element.tagName.toLowerCase() === 'html') return '/html';
+        
+        // Safely check tagName
+        const tagName = element.tagName ? element.tagName.toLowerCase() : 'unknown';
+        
+        if (tagName === 'html') return '/html';
 
         let position = 1;
         let currentSibling = element;
@@ -100,7 +105,7 @@ function getFullElementXPath(element) {
 
         let path = '';
         if (element.parentNode && element.parentNode.nodeType === 1) {
-            path = `${getFullElementXPath(element.parentNode)}/${element.tagName.toLowerCase()}`;
+            path = `${getFullElementXPath(element.parentNode)}/${tagName}`;
             const siblings = Array.from(element.parentNode.children).filter(
                 (sibling) => sibling.tagName === element.tagName
             );
@@ -108,7 +113,7 @@ function getFullElementXPath(element) {
                 path += `[${position}]`;
             }
         } else {
-            path = `/${element.tagName.toLowerCase()}`;
+            path = `/${tagName}`;
         }
 
         return path;
@@ -245,11 +250,13 @@ function processInputEvent(event) {
 
 // Tooltip and Highlighting Functions
 function getElementType(element) {
+    // Early return for null or undefined elements
     if (!element) return 'unknown';
 
-    const tagName = element.tagName.toLowerCase();
-    const role = element.getAttribute('role');
-    const type = element.type?.toLowerCase();
+    // Safely get tagName
+    const tagName = element.tagName ? element.tagName.toLowerCase() : 'unknown';
+    const role = element.getAttribute ? element.getAttribute('role') : null;
+    const type = element.type ? element.type.toLowerCase() : null;
 
     if (tagName.includes('-')) {
         const framework =
@@ -265,7 +272,7 @@ function getElementType(element) {
         return `${tagName}${type ? ` (${type})` : ''}`;
     }
 
-    if (['div', 'section', 'article', 'main', 'aside', 'nav'].includes(tagName) && element.children.length) {
+    if (['div', 'section', 'article', 'main', 'aside', 'nav'].includes(tagName) && element.children && element.children.length) {
         return `${tagName} (container)`;
     }
 
@@ -310,6 +317,14 @@ function updateTooltipPosition(tooltip, event) {
 }
 
 function createTooltip(element, event) {
+    // Early return if element is undefined
+    if (!element) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'xpath-tooltip';
+        tooltip.innerHTML = '<div>No element found</div>';
+        return tooltip;
+    }
+
     const tooltip = document.createElement('div');
     tooltip.className = 'xpath-tooltip';
 
@@ -342,13 +357,23 @@ function handleMouseEnter(event) {
     const element = event.target;
     if (element === document.documentElement || element === document.body) return;
 
-    if (highlightedElement) {
+    // Ensure highlightedElement is initialized
+    highlightedElement = highlightedElement || null;
+
+    // Safely remove highlight from previous element
+    if (highlightedElement && highlightedElement.classList) {
         highlightedElement.classList.remove('xpath-hover-highlight');
     }
-    element.classList.add('xpath-hover-highlight');
+    
+    // Safely add highlight to current element
+    if (element && element.classList) {
+        element.classList.add('xpath-hover-highlight');
+    }
+    
     highlightedElement = element;
 
-    if (currentTooltip) {
+    // Safely remove previous tooltip
+    if (currentTooltip && currentTooltip.remove) {
         currentTooltip.remove();
     }
 
@@ -357,7 +382,6 @@ function handleMouseEnter(event) {
     currentTooltip = tooltip;
     updateTooltipPosition(tooltip, event);
 }
-
 
 function handleMouseMove(event) {
     if (currentTooltip) {
@@ -387,14 +411,17 @@ function handleMouseMove(event) {
 function handleMouseLeave(event) {
     const element = event.target;
     
-    if (element === highlightedElement) {
-        element.classList.remove('xpath-hover-highlight');
-        highlightedElement = null;
-        
-        if (currentTooltip) {
-            currentTooltip.remove();
-            currentTooltip = null;
-        }
+    // Safely remove highlight
+    if (highlightedElement && highlightedElement.classList) {
+        highlightedElement.classList.remove('xpath-hover-highlight');
+    }
+    
+    highlightedElement = null;
+    
+    // Safely remove tooltip
+    if (currentTooltip && currentTooltip.remove) {
+        currentTooltip.remove();
+        currentTooltip = null;
     }
 }
 
@@ -431,7 +458,19 @@ function addTooltipEventListeners() {
         document.addEventListener('mouseenter', handleMouseEnter, true);
         document.addEventListener('mousemove', handleMouseMove, true);
         document.addEventListener('mouseleave', handleMouseLeave, true);
-        document.addEventListener('scroll', handleScrollForTooltip, { passive: true });
+        
+        // Replace handleScrollForTooltip with an anonymous function that removes tooltip on scroll
+        document.addEventListener('scroll', () => {
+            if (currentTooltip) {
+                currentTooltip.remove();
+                currentTooltip = null;
+            }
+            if (highlightedElement) {
+                highlightedElement.classList.remove('xpath-hover-highlight');
+                highlightedElement = null;
+            }
+        }, { passive: true });
+        
         tooltipEventListenersActive = true;
     }
 }
@@ -441,7 +480,6 @@ function removeTooltipEventListeners() {
         document.removeEventListener('mouseenter', handleMouseEnter, true);
         document.removeEventListener('mousemove', handleMouseMove, true);
         document.removeEventListener('mouseleave', handleMouseLeave, true);
-        document.removeEventListener('scroll', handleScrollForTooltip, { passive: true });
         tooltipEventListenersActive = false;
         
         if (currentTooltip) {
@@ -505,7 +543,7 @@ let lastScrollY = 0;
 
 // Event Listeners (continued)
 const debouncedScrollHandler = debounce(handleScroll, 150);
-const debouncedInputHandler = debounce(processInputEvent, 1000);
+const debouncedInputHandler = debounce(processInputEvent, 500);
 
 // Remove existing event listeners
 document.removeEventListener('mousemove', handleMouseMove);
@@ -543,15 +581,15 @@ document.addEventListener('input', debouncedInputHandler, true);
 // });
 
 // Add event listener for hover to show tooltip
-document.addEventListener('mouseenter', function(event) {
-    const targetElement = event.target;
-    showTooltip(targetElement, event);
-}, true);
+// document.addEventListener('mouseenter', function(event) {
+//     const targetElement = event.target;
+//     showTooltip(targetElement, event);
+// }, true);
 
-// Add event listener to remove tooltip
-document.addEventListener('mouseleave', function(event) {
-    removeTooltip();
-}, true);
+// // Add event listener to remove tooltip
+// document.addEventListener('mouseleave', function(event) {
+//     removeTooltip();
+// }, true);
 
 // Handle scroll events
 document.addEventListener('scroll', () => {
