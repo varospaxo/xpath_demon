@@ -509,7 +509,7 @@ style.textContent = `
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 12px;
-    z-index: 10000;
+    z-index: 999999;
     pointer-events: none;
     max-width: 400px;
     word-wrap: break-word;
