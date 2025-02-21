@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyButton = document.getElementById('copyActions');
   const actionList = document.getElementById('actionList');
   const useIdCheckbox = document.getElementById('useIdCheckbox');
+  const xpathOnlyCheckbox = document.getElementById('xpathOnlyCheckbox');
 
   // Function to update UI based on recording state
   function updateUIState(isRecording) {
@@ -16,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get(['useId'], (result) => {
       useIdCheckbox.checked = result.useId || false;
   });
+  chrome.storage.local.get(['xpathOnlyMode'], (result) => {
+    xpathOnlyCheckbox.checked = result.xpathOnlyMode || false;
+  });
 
   // Handle checkbox changes
   useIdCheckbox.addEventListener('change', () => {
@@ -25,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
           action: 'updateUseId', 
           useId: useId 
       });
+  });
+
+  xpathOnlyCheckbox.addEventListener('change', () => {
+    const xpathOnlyMode = xpathOnlyCheckbox.checked;
+    chrome.storage.local.set({ xpathOnlyMode });
+    chrome.runtime.sendMessage({ 
+      action: 'updateXpathOnlyMode', 
+      xpathOnlyMode: xpathOnlyMode 
+    });
   });
 
   // Rest of your existing popup.js code...

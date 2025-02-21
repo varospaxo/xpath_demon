@@ -1,4 +1,5 @@
 // Utility Functions
+let xpathOnlyMode = false;
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -130,6 +131,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'xpathOnlyModeChanged') {
+      xpathOnlyMode = request.xpathOnlyMode;
+    }
+  });
+
+  chrome.runtime.sendMessage({ action: 'getActions' }, (response) => {
+    if (response && response.xpathOnlyMode !== undefined) {
+      xpathOnlyMode = response.xpathOnlyMode;
+    }
+  });
+
 // Initialize useId state from storage
 chrome.storage.local.get(['useId'], (result) => {
     setUseId(result.useId || false);
@@ -156,26 +169,28 @@ function isMultiLineInput(element, value) {
 
 // Event Logging Functions
 function logClickEvent(event) {
-    const x = event.clientX;
-    const y = event.clientY;
-    const resolutionWidth = window.innerWidth;
-    const resolutionHeight = window.innerHeight;
-    
-    const targetElement = getElementFromPoint(x, y);
-    let xpath = 'unknown';
-    
-    try {
-        xpath = getFullElementXPath(targetElement);
-    } catch (error) {
-        console.warn('Failed to get XPath:', error);
-    }
-    
-    console.log(`Click recorded at (${x}, ${y}) with resolution ${resolutionWidth}x${resolutionHeight}`);
-    
-    chrome.runtime.sendMessage({
-        action: 'recordAction',
-        actionText: `click|${xpath}|${x},${y}|${resolutionWidth}x${resolutionHeight}`,
-    });
+  const x = event.clientX;
+  const y = event.clientY;
+  const resolutionWidth = window.innerWidth;
+  const resolutionHeight = window.innerHeight;
+  
+  const targetElement = getElementFromPoint(x, y);
+  let xpath = 'unknown';
+  
+  try {
+    xpath = getFullElementXPath(targetElement);
+  } catch (error) {
+    console.warn('Failed to get XPath:', error);
+  }
+  
+  console.log(`Click recorded at (${x}, ${y}) with resolution ${resolutionWidth}x${resolutionHeight}`);
+  
+  chrome.runtime.sendMessage({
+    action: 'recordAction',
+    actionText: xpathOnlyMode ? 
+      xpath : 
+      `click|${xpath}|${x},${y}|${resolutionWidth}x${resolutionHeight}`,
+  });
 }
 
 function logSubmitEvent(event) {
@@ -280,14 +295,31 @@ function getElementType(element) {
 }
 
 function getRelevantAttributes(element) {
+    // Early return if element is null, undefined, or not a DOM element
+    if (!element || !element.nodeType || element.nodeType !== Node.ELEMENT_NODE) {
+        return [];
+    }
+
     const attributes = [];
-    ['id', 'class', 'name', 'type', 'placeholder', 'value', 'data-testid', 'aria-label', 'role', 'tabindex']
-        .forEach(attr => {
-            const value = element.getAttribute(attr);
-            if (value && (attr !== 'value' || element.type !== 'password')) {
-                attributes.push(`${attr}="${value}"`);
-            }
-        });
+    try {
+        ['id', 'class', 'name', 'type', 'placeholder', 'value', 'data-testid', 'aria-label', 'role', 'tabindex']
+            .forEach(attr => {
+                try {
+                    // Use hasAttribute to check if attribute exists before getting it
+                    if (element.hasAttribute && element.hasAttribute(attr)) {
+                        const value = element.getAttribute(attr);
+                        if (value && (attr !== 'value' || element.type !== 'password')) {
+                            attributes.push(`${attr}="${value}"`);
+                        }
+                    }
+                } catch (attrError) {
+                    console.warn(`Error getting attribute ${attr}:`, attrError);
+                }
+            });
+    } catch (error) {
+        console.warn('Error processing element attributes:', error);
+    }
+    
     return attributes;
 }
 

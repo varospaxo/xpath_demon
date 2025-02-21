@@ -1,13 +1,13 @@
 // Explicitly initialize recordedActions
 let recordedActions = [];
 let isRecording = false;
+let xpathOnlyMode = false;
 
 // Load initial state from storage
-chrome.storage.local.get(['isRecording', 'recordedActions'], (result) => {
+chrome.storage.local.get(['isRecording', 'recordedActions', 'xpathOnlyMode'], (result) => {
   isRecording = result.isRecording || false;
-  recordedActions = Array.isArray(result.recordedActions) 
-    ? result.recordedActions 
-    : [];
+  recordedActions = Array.isArray(result.recordedActions) ? result.recordedActions : [];
+  xpathOnlyMode = result.xpathOnlyMode || false;
 });
 
 // Enhanced error handling in message listener
@@ -32,11 +32,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         sendResponse({ success: true });
         break;
+      case 'updateXpathOnlyMode':
+        xpathOnlyMode = request.xpathOnlyMode;
+        chrome.storage.local.set({ xpathOnlyMode });
+        // Notify all tabs about the mode change
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'xpathOnlyModeChanged',
+              xpathOnlyMode: xpathOnlyMode
+            }).catch(() => {
+              // Ignore errors for inactive tabs
+            });
+          });
+        });
+        sendResponse({ success: true });
+        break;
       case 'getActions':
-        // Ensure we're sending an object with an actions array
         sendResponse({ 
           actions: Array.isArray(recordedActions) ? recordedActions : [],
-          isRecording: isRecording
+          isRecording: isRecording,
+          xpathOnlyMode: xpathOnlyMode
         });
         return true;
       case 'recordAction':
